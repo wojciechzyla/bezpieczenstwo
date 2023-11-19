@@ -1,0 +1,18 @@
+api:
+  image:
+    repository: wzyla/api_sec
+    imagePullPolicy: Always
+    tag: "latest"
+  env:
+    DB_NAME: "smart_travel"
+    DB_HOST: "postgres-service"
+    DB_USERNAME: "st_backend"
+    DB_PASSWORD: "abdj24AfwF#$1cw#4fq3d"
+    ACCESS_TOKEN_EXPIRES_MIN: "2"
+    REFRESH_TOKEN_EXPIRES_MIN: "6"
+    JWT_SECRET_KEY: "asddacew232edae"
+postgres:
+  image:
+    imagePullPolicy: Always
+  PersistentVolume:
+    path: "/Users/wojciechzyla/Desktop/AGH/semestr_ktorys/bezpieczenstwo/baza"

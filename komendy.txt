@@ -1,0 +1,31 @@
+rejestracja:
+curl -X POST -H "Content-Type: application/json" -d '{"login":"admin","password":"admin"}' http://<address>:<port>/register
+
+logowanie:
+curl -X POST -H "Content-Type: application/json" -d '{"login":"admin","password":"admin"}' http://<address>:<port>/login
+
+testowa ściezka zwracająca login uytkownika
+curl -X GET -H "Authorization: Bearer <access_token>" http://<address>:<port>/user
+
+refresh access tokena
+curl -X POST -H "Authorization: Bearer <refresh_token>" http://<address>:<port>/refresh
+
+wylogowanie z usunięciem tokenów
+curl -X DELETE \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}' \
+  http://<address>:<port>/logout
+
+
+Przykładowe logi z przy nieudanym uwierzytelnianiu
+INFO:app:Failed request: failed login from address: 10.244.0.1
+INFO:app:Failed request: failed login from address: 10.244.0.1
+INFO:app:Failed request: failed validation for endpoint /user from address: 10.244.0.1
+INFO:app:Failed request: failed validation for endpoint /user from address: 10.244.0.1
+INFO:app:Failed request: failed validation for endpoint /user from address: 10.244.0.1
+INFO:app:Failed request: failed validation for endpoint /refresh from address: 10.244.0.1
+INFO:app:Failed request: failed validation for endpoint /refresh from address: 10.244.0.1
+
+
+minikube start --cni calico
