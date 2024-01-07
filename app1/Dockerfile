@@ -12,8 +12,5 @@ RUN pip install -r requirements.txt
 
 RUN chmod +x entrypoint.sh
 
-# Define environment variable
-ENV NAME World
-
 # Run app.py when the container launches
 CMD ["./entrypoint.sh"]

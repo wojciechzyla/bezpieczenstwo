@@ -24,7 +24,7 @@ spec:
         - name: DB_NAME
           value: {{ .Values.api.env.DB_NAME | quote }}
         - name: DB_HOST
-          value: {{ .Values.api.env.DB_HOST | quote }}
+          value: "postgres-service"
         - name: DB_USERNAME
           value: {{ .Values.api.env.DB_USERNAME | quote }}
         - name: DB_PASSWORD
@@ -35,6 +35,10 @@ spec:
           value: {{ .Values.api.env.REFRESH_TOKEN_EXPIRES_MIN | quote }}
         - name: JWT_SECRET_KEY
           value: {{ .Values.api.env.JWT_SECRET_KEY | quote }}
+        - name: APP2_URL
+          value: "processing-service:5000"
+        - name: ENCRYPTION_KEY
+          value: {{ .Values.api.env.ENCRYPTION_KEY | quote }}
 ---
 apiVersion: v1
 kind: Service

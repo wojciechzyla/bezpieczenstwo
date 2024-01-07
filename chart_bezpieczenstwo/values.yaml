@@ -11,6 +11,14 @@ api:
     ACCESS_TOKEN_EXPIRES_MIN: "2"
     REFRESH_TOKEN_EXPIRES_MIN: "6"
     JWT_SECRET_KEY: "asddacew232edae"
+    ENCRYPTION_KEY: 'MbQeThWmZq4t6w9z'
+processing:
+  image:
+    repository: wzyla/processing_sec
+    imagePullPolicy: Always
+    tag: "latest"
+  env:
+    ENCRYPTION_KEY: 'MbQeThWmZq4t6w9z'
 postgres:
   image:
     imagePullPolicy: Always

@@ -10,6 +10,9 @@ curl -X GET -H "Authorization: Bearer <access_token>" http://<address>:<port>/us
 refresh access tokena
 curl -X POST -H "Authorization: Bearer <refresh_token>" http://<address>:<port>/refresh
 
+testowa ściezka do komunikacji między aplikacjami używającymi szyfrowania
+curl -X GET -H "Authorization: Bearer <access_token>" http://<address>:<port>/between-apps-communication
+
 wylogowanie z usunięciem tokenów
 curl -X DELETE \
   -H "Authorization: Bearer <access_token>" \
@@ -29,3 +32,6 @@ INFO:app:Failed request: failed validation for endpoint /refresh from address: 1
 
 
 minikube start --cni calico
+
+żeby nodePort działał w minikubie to trzeba ten serwis tak odpalić:
+minikube service rest-api-service --url
