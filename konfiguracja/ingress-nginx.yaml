@@ -1,0 +1,322 @@
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    name: ingress-nginx-controller
+    namespace: ingress-nginx
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: ingress-nginx
+        app.kubernetes.io/name: ingress-nginx
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app.kubernetes.io/component: controller
+          app.kubernetes.io/instance: ingress-nginx
+          app.kubernetes.io/name: ingress-nginx
+          gcp-auth-skip-secret: "true"
+      spec:
+        containers:
+        - args:
+          - /nginx-ingress-controller
+          - --election-id=ingress-nginx-leader
+          - --controller-class=k8s.io/ingress-nginx
+          - --watch-ingress-without-class=true
+          - --configmap=$(POD_NAMESPACE)/ingress-nginx-controller
+          - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services
+          - --udp-services-configmap=$(POD_NAMESPACE)/udp-services
+          - --validating-webhook=:8443
+          - --validating-webhook-certificate=/usr/local/certificates/cert
+          - --validating-webhook-key=/usr/local/certificates/key
+          - --enable-metrics=true
+          env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: LD_PRELOAD
+            value: /usr/local/lib/libmimalloc.so
+          image: registry.k8s.io/ingress-nginx/controller:v1.8.1@sha256:e5c4824e7375fcf2a393e1c03c293b69759af37a9ca6abdb91b13d78a93da8bd
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /wait-shutdown
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: controller
+          ports:
+          - containerPort: 80
+            hostPort: 80
+            name: http
+            protocol: TCP
+          - containerPort: 443
+            hostPort: 443
+            name: https
+            protocol: TCP
+          - containerPort: 8443
+            name: webhook
+            protocol: TCP
+          - containerPort: 10254
+            name: prometheus
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 90Mi
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+              - NET_BIND_SERVICE
+              drop:
+              - ALL
+            runAsUser: 101
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /usr/local/certificates/
+            name: webhook-cert
+            readOnly: true
+        dnsPolicy: ClusterFirst
+        nodeSelector:
+          kubernetes.io/os: linux
+          minikube.k8s.io/primary: "true"
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        serviceAccount: ingress-nginx
+        serviceAccountName: ingress-nginx
+        terminationGracePeriodSeconds: 0
+        tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+        volumes:
+        - name: webhook-cert
+          secret:
+            defaultMode: 420
+            secretName: ingress-nginx-admission
+---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    name: ingress-nginx-controller
+    namespace: ingress-nginx
+  spec:
+    clusterIP: 10.110.35.124
+    clusterIPs:
+    - 10.110.35.124
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - appProtocol: http
+      name: http
+      nodePort: 31115
+      port: 80
+      protocol: TCP
+      targetPort: http
+    - appProtocol: https
+      name: https
+      nodePort: 31160
+      port: 443
+      protocol: TCP
+      targetPort: https
+    - appProtocol: http
+      name: metric
+      nodePort: 30660
+      port: 10254
+      protocol: TCP
+      targetPort: http
+    selector:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+    
+---
+    
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    name: ingress-nginx-controller-admission
+    namespace: ingress-nginx
+  spec:
+    clusterIP: 10.106.144.120
+    clusterIPs:
+    - 10.106.144.120
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - appProtocol: https
+      name: https-webhook
+      port: 443
+      protocol: TCP
+      targetPort: webhook
+    selector:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-prometheus
+    namespace: ingress-nginx
+  spec:
+    clusterIP: 10.97.106.22
+    clusterIPs:
+    - 10.97.106.22
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: ingress-prometheus
+      port: 80
+      protocol: TCP
+      targetPort: 10254
+    selector:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+  
+---
+  apiVersion: v1
+  data:
+    hsts: "false"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    name: ingress-nginx-controller
+    namespace: ingress-nginx
+---
+  apiVersion: v1
+  data:
+    ca.crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIDBjCCAe6gAwIBAgIBATANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDEwptaW5p
+      a3ViZUNBMB4XDTIzMTAzMTE2NTAzOVoXDTMzMTAyOTE2NTAzOVowFTETMBEGA1UE
+      AxMKbWluaWt1YmVDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAPFL
+      qr+sHFVXsbvYULM+K5nTJqerZ2I5Cl38VtNreQTKlxo8MTnP1I8vuySaOVLYrfAN
+      kZKBdcMl0HpxMUcHn9fmr4Ylgt2mNfSUkfmYaAxnu6iyZJa59fK6JMMQrVMVz1Mx
+      sglri/XfdAK7ZPAZo/wwYiFhlXt1UfbnVLZeZYpCRAbkYcb/32CM+ZmBKxHqaq35
+      e3GIMLxerwMXBs1adeGAmMtmCkLF23M7aFuUf1SJwgVoOZNqL5+0iu8p6hjgVLl2
+      jBljpk5mjo6b02IFduOKLjfiOlEtc1kefgqSY9hml9oCze8p5eiXpMNDMp9QRZ12
+      rzudz8euxi3rNY6g35kCAwEAAaNhMF8wDgYDVR0PAQH/BAQDAgKkMB0GA1UdJQQW
+      MBQGCCsGAQUFBwMCBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+      BBSmi6Rme+44a24o5icv88yHv2eClzANBgkqhkiG9w0BAQsFAAOCAQEAJq4r1FZD
+      YspbW8kwkNXOXqAPfG8EI/VisZmXHOTdLjMYS9qctiDVXT38HF92D8mHGieaIbVO
+      vSzIEGIZFe8UdcjYc8vc0wf55BhnreOHMhCOnS4LB6xS+uNahwzx8WsP1am2cUc3
+      /TzaX+gCjztA0xtjeXYu9R4iwZ0JrMpxLZHMEuPqNE2nkSHG6bvwhelc6ma5nDVT
+      Q4jxCyUrL4VE1MOsx50sVZCobAg8sYNIrCR9k+cNPNIoayPWqNRRxVvP5a/qZOxh
+      xZGGAwcDo0juj6mOBlgjJlKmOr/j6YF28uPp8gVuhagcWMTVnlzxA+PWuAj+gtbh
+      LRf7DJ1m8D1CtQ==
+      -----END CERTIFICATE-----
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubernetes.io/description: Contains a CA bundle that can be used to verify the
+        kube-apiserver when using internal endpoints such as the internal service
+        IP or kubernetes.default.svc. No other usage is guaranteed across distributions
+        of Kubernetes clusters.
+    name: kube-root-ca.crt
+    namespace: ingress-nginx
+---
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    name: tcp-services
+    namespace: ingress-nginx
+---
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    labels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+    name: udp-services
+    namespace: ingress-nginx
+---
+  apiVersion: v1
+  data:
+    ca: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkakNDQVJ5Z0F3SUJBZ0lSQUpIMGlHSmQreE1heXkzWFJkV2FxRlF3Q2dZSUtvWkl6ajBFQXdJd0R6RU4KTUFzR0ExVUVDaE1FYm1sc01UQWdGdzB5TXpFeE1ERXhPVFUyTkROYUdBOHlNVEl6TVRBd09ERTVOVFkwTTFvdwpEekVOTUFzR0ExVUVDaE1FYm1sc01UQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJJcU4wUzgrCnZnMlZjM0krL3FycEtaTWZ3TzRsTnVTTkNYV09mTUxxOCtpVHo5MUZuSTdKblBGOCtjdkJLK3JjZjRlUzVvazcKdGJOWXBTR1MrMkFvbXoyalZ6QlZNQTRHQTFVZER3RUIvd1FFQXdJQ0JEQVRCZ05WSFNVRUREQUtCZ2dyQmdFRgpCUWNEQVRBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJTWlBGRzBYQ016a3A0RE5GeEJhcUtLCmpQSXE2REFLQmdncWhrak9QUVFEQWdOSUFEQkZBaUVBMTdjQkVxWDJpS1dlYXB2VXZEK3lic0lsMGg5bE0zY3UKc1JpZVQ0aTZjeWNDSUUzMGRoU1g0dWFSbTNjSTNYTThkSXlPUGNDYW5JY1gyT0ZmWEM3S3gvbDUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    cert: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJ1akNDQVdDZ0F3SUJBZ0lRWUpmRVNsdXc2UVZ6a0FNTnJtZ0N4akFLQmdncWhrak9QUVFEQWpBUE1RMHcKQ3dZRFZRUUtFd1J1YVd3eE1DQVhEVEl6TVRFd01URTVOVFkwTTFvWUR6SXhNak14TURBNE1UazFOalF6V2pBUApNUTB3Q3dZRFZRUUtFd1J1YVd3eU1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEUWdBRU5NK0VzMjBMClJDSmlIRStyRGpqRUUyUHpCZXVoL2dYanB1T0ZBM1RkRGlmMkFRZWxTZ1JET3NWTnVsNXdPd1JGYVdiMzNVeVMKTVhoaktHZ0RSNmN3UWFPQm16Q0JtREFPQmdOVkhROEJBZjhFQkFNQ0JhQXdFd1lEVlIwbEJBd3dDZ1lJS3dZQgpCUVVIQXdFd0RBWURWUjBUQVFIL0JBSXdBREJqQmdOVkhSRUVYREJhZ2lKcGJtZHlaWE56TFc1bmFXNTRMV052CmJuUnliMnhzWlhJdFlXUnRhWE56YVc5dWdqUnBibWR5WlhOekxXNW5hVzU0TFdOdmJuUnliMnhzWlhJdFlXUnQKYVhOemFXOXVMbWx1WjNKbGMzTXRibWRwYm5ndWMzWmpNQW9HQ0NxR1NNNDlCQU1DQTBnQU1FVUNJQU1RNllkVgpBQlJ6UFVqUm9XRHFTYlkxK0FWdVVRQ3JtMFRIK3JqcktYNFFBaUVBaWwvRFZmVGlNN0FsQm5tY1NzaWUzbnVmCjRJdmRPSUoza0Q1a3lkY2NZWG89Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    key: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSUZiOVk4NVpMZGVUbmxsMFE0RUh0NjJuS2JMNmFzd0N3amtpc2Jzek4vOXhvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFTk0rRXMyMExSQ0ppSEUrckRqakVFMlB6QmV1aC9nWGpwdU9GQTNUZERpZjJBUWVsU2dSRApPc1ZOdWw1d093UkZhV2IzM1V5U01YaGpLR2dEUjZjd1FRPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
+  kind: Secret
+  metadata:
+    name: ingress-nginx-admission
+    namespace: ingress-nginx
+  type: Opaque
+kind: List
