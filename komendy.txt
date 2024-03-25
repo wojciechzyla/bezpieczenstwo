@@ -34,4 +34,13 @@ INFO:app:Failed request: failed validation for endpoint /refresh from address: 1
 minikube start --cni calico
 
 żeby nodePort działał w minikubie to trzeba ten serwis tak odpalić:
-minikube service rest-api-service --url
+minikube service main-app-service --url
+
+
+docker run -d \
+  --name mypostgres \
+  -e POSTGRES_PASSWORD=example-password \
+  -v ./init.sql:/docker-entrypoint-initdb.d/init.sql \
+  -v ./baza:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  postgres:15.4

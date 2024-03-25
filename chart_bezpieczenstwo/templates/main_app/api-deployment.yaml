@@ -1,52 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rest-api
+  name: main-app
   labels:
-    app: rest-api
+    app: main-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rest-api
+      app: main-app
   template:
     metadata:
       labels:
-        app: rest-api
+        app: main-app
     spec:
       containers:
-      - name: rest-api-container
-        image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
-        imagePullPolicy: {{ .Values.api.image.imagePullPolicy }}
+      - name: main-app-container
+        image: "{{ .Values.main_app.image.repository }}:{{ .Values.main_app.image.tag }}"
+        imagePullPolicy: {{ .Values.main_app.image.imagePullPolicy }}
         ports:
         - containerPort: 5000
         env:
         - name: DB_NAME
-          value: {{ .Values.api.env.DB_NAME | quote }}
+          value: {{ .Values.main_app.env.DB_NAME | quote }}
         - name: DB_HOST
           value: "postgres-service"
         - name: DB_USERNAME
-          value: {{ .Values.api.env.DB_USERNAME | quote }}
+          value: {{ .Values.main_app.env.DB_USERNAME | quote }}
         - name: DB_PASSWORD
-          value: {{ .Values.api.env.DB_PASSWORD | quote }}
-        - name: ACCESS_TOKEN_EXPIRES_MIN
-          value: {{ .Values.api.env.ACCESS_TOKEN_EXPIRES_MIN | quote }}
-        - name: REFRESH_TOKEN_EXPIRES_MIN
-          value: {{ .Values.api.env.REFRESH_TOKEN_EXPIRES_MIN | quote }}
-        - name: JWT_SECRET_KEY
-          value: {{ .Values.api.env.JWT_SECRET_KEY | quote }}
-        - name: APP2_URL
-          value: "processing-service:5000"
-        - name: ENCRYPTION_KEY
-          value: {{ .Values.api.env.ENCRYPTION_KEY | quote }}
+          value: {{ .Values.main_app.env.DB_PASSWORD | quote }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: rest-api-service
+  name: main-app-service
 spec:
   selector:
-    app: rest-api
+    app: main-app
   ports:
     - protocol: TCP
       port: 5000

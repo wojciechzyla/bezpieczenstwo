@@ -1,26 +1,20 @@
-api:
+main_app:
   image:
-    repository: wzyla/api_sec
+    repository: wzyla/cloud_tech
     imagePullPolicy: Always
     tag: "latest"
   env:
-    DB_NAME: "smart_travel"
+    # Nazwa bazy w PostgreSQL (taka sama ustawiona w bazie i w konfiguracji aplikacji laczacej sie z baza)
+    DB_NAME: "db_name"
+    # Nazwa serwisu kubernetesa dajacego dostep do PostgreSQL
     DB_HOST: "postgres-service"
+    # Username w PostgreSQL (taki sam ustawiony w bazie i w konfiguracji aplikacji laczacej sie z baza)
     DB_USERNAME: "st_backend"
+    # Haslo do PostgreSQL (takie samo ustawione w bazie i w konfiguracji aplikacji laczacej sie z baza)
     DB_PASSWORD: "abdj24AfwF#$1cw#4fq3d"
-    ACCESS_TOKEN_EXPIRES_MIN: "2"
-    REFRESH_TOKEN_EXPIRES_MIN: "6"
-    JWT_SECRET_KEY: "asddacew232edae"
-    ENCRYPTION_KEY: 'MbQeThWmZq4t6w9z'
-processing:
-  image:
-    repository: wzyla/processing_sec
-    imagePullPolicy: Always
-    tag: "latest"
-  env:
-    ENCRYPTION_KEY: 'MbQeThWmZq4t6w9z'
 postgres:
   image:
     imagePullPolicy: Always
   PersistentVolume:
-    path: "/Users/wojciechzyla/Desktop/AGH/semestr_ktorys/bezpieczenstwo/baza"
+    # sciezka na maszynie lokalnej
+    path: ""

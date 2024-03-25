@@ -4,11 +4,11 @@ metadata:
   name: postgres-configmap
 data:
   init.sql: |
-    CREATE DATABASE {{ .Values.api.env.DB_NAME }};
-    CREATE USER {{ .Values.api.env.DB_USERNAME }} WITH ENCRYPTED PASSWORD '{{ .Values.api.env.DB_PASSWORD }}';
-    GRANT ALL ON DATABASE {{ .Values.api.env.DB_NAME }} TO {{ .Values.api.env.DB_USERNAME }};
-    ALTER DATABASE {{ .Values.api.env.DB_NAME }} OWNER TO {{ .Values.api.env.DB_USERNAME }};
-    GRANT USAGE, CREATE ON SCHEMA PUBLIC TO {{ .Values.api.env.DB_USERNAME }};
+    CREATE DATABASE {{ .Values.main_app.env.DB_NAME }};
+    CREATE USER {{ .Values.main_app.env.DB_USERNAME }} WITH ENCRYPTED PASSWORD '{{ .Values.main_app.env.DB_PASSWORD }}';
+    GRANT ALL ON DATABASE {{ .Values.main_app.env.DB_NAME }} TO {{ .Values.main_app.env.DB_USERNAME }};
+    ALTER DATABASE {{ .Values.main_app.env.DB_NAME }} OWNER TO {{ .Values.main_app.env.DB_USERNAME }};
+    GRANT USAGE, CREATE ON SCHEMA PUBLIC TO {{ .Values.main_app.env.DB_USERNAME }};
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -84,10 +84,10 @@ spec:
   - from:
     - podSelector:
         matchLabels:
-          app: rest-api
+          app: main-app
   egress:
   - to:
     - podSelector:
         matchLabels:
-          app: rest-api
+          app: main-app
 
