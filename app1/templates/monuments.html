@@ -1,0 +1,22 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Monuments</h2>
+<form method="POST">
+    <select name="city">
+        <option value="">Select a City</option>
+        {% for city in cities %}
+        <option value="{{ city[0] }}">{{ city[0] }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Show</button>
+</form>
+
+{% if monuments %}
+    <ul>
+        {% for monument in monuments %}
+            <li>{{ monument.name }} w miejscowości {{ monument.city }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+{% endblock %}
